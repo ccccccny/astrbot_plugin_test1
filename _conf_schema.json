@@ -1,7 +1,7 @@
 {
   "token": {
     "description": "Bot Token",
-    "type": "string",
+    "type": "string"
   },
   "sub_config": {
     "description": "测试嵌套配置",
