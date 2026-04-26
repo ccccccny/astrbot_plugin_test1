@@ -50,13 +50,13 @@ class MyPlugin(Star):
         message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
 
         logger.info(message_chain)
-        logger.info(message_str)
+        # logger.info(message_str)
 
         image_urls = []
 
         # 提取用户输入的编辑提示词
-        prompt = event.message_str.strip()
-        logger.info(prompt)
+        prompt = event.message_str.strip()[1]
+        # logger.info(prompt)
         if not prompt:
             yield event.plain_result("❌ 请提供编辑描述！\n用法：引用图片并发送 /edit 将背景换成森林")
             return
