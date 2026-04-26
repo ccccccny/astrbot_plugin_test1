@@ -10,6 +10,7 @@ from astrbot.api import AstrBotConfig
 from pathlib import Path
 import httpx
 import base64
+import asyncio
 
 @register("edit", "img", "一个图像编辑插件", "0.0.1")
 class MyPlugin(Star):
@@ -191,9 +192,6 @@ class MyPlugin(Star):
         """
         调用硅基流动 (SiliconFlow) 的 Qwen-Image-Edit API
         """
-        # 从配置中读取 API 信息
-        if not self.config:
-            self.config = await self.context.load_plugin_config(self.name)
         
         api_key = self.config.get("siliconflow_api_key")
         model = self.config.get("edit_model", "Qwen/Qwen-Image-Edit-2509")
