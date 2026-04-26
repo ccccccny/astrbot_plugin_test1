@@ -94,7 +94,7 @@ class MyPlugin(Star):
             # 调用 AI 图像编辑 API
             try:
                 # edited_images = await self.call_ai_image_edit_siliconflow(save_paths[0], prompt)
-                edited_images = await self.call_ai_image_edit_modelscope(save_paths[0], prompt)
+                edited_images = await self.call_ai_image_edit_modelscope(image_urls[0], prompt)
                 
                 # 6. 发送编辑后的图片
                 if edited_images:
@@ -126,21 +126,23 @@ class MyPlugin(Star):
                     async for chunk in resp.aiter_bytes(chunk_size=8192):
                         f.write(chunk)
 
-    async def call_ai_image_edit_modelscope(self, image_path: Path, prompt: str) -> list:
+    async def call_ai_image_edit_modelscope(self, image_url: str, prompt: str) -> list:
         """
         调用魔搭 (ModelScope) 的 Qwen-Image-Edit API
+        使用官方示例的 image_url 方式
         """
-        # 读取配置
         api_key = self.config.get("api_key")
-        model = self.config.get("edit_model", "Qwen/Qwen-Image-Edit-2509")
+        model = self.config.get("edit_model", "Qwen/Qwen-Image-Edit-2511")  # 使用最新版
         
         if not api_key:
             raise Exception("❌ 未配置 ModelScope API Key，请在插件配置中填写")
         
-        # 读取图片并转为 Base64
-        with open(image_path, "rb") as f:
-            import base64
-            image_base64 = base64.b64encode(f.read()).decode()
+        # 注意：需要将本地图片上传到某个可访问的 URL，或者使用方案2的 base64
+        # 这里假设你的图片已经有可访问的 URL（从引用消息中获取）
+        # 但你的代码中 save_paths[0] 是本地路径，需要转换
+        
+        # 临时方案：你需要先把图片上传到某个地方获取 URL
+        # 或者使用方案2的 base64 方式
         
         # 魔搭 API 地址
         url = "https://api-inference.modelscope.cn/v1/images/generations"
@@ -148,18 +150,14 @@ class MyPlugin(Star):
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "X-ModelScope-Async-Mode": "true"  # 异步模式
+            "X-ModelScope-Async-Mode": "true"
         }
         
-        # 构建请求体（注意：魔搭使用 images 数组，不是 image）
+        # 使用官方示例的格式
         data = {
             "model": model,
             "prompt": prompt,
-            "images": [f"data:image/jpeg;base64,{image_base64}"],  # 支持 1-3 张图
-            "negative_prompt": "",  # 可选，负向提示词
-            "steps": 40,
-            "guidance": 4.0,
-            "seed": None
+            "image_url": [image_url]  # 这里需要传入图片的 URL，不是本地路径
         }
         
         async with httpx.AsyncClient(timeout=120.0) as client:
@@ -177,15 +175,13 @@ class MyPlugin(Star):
                 }
                 result = await client.get(status_url, headers=status_headers)
                 result.raise_for_status()
-                data = result.json()
+                task_data = result.json()
                 
-                if data["task_status"] == "SUCCEED":
-                    # 返回生成的图片 URL
-                    return data.get("output_images", [])
-                elif data["task_status"] == "FAILED":
-                    raise Exception(f"图像编辑失败: {data.get('message', '未知错误')}")
+                if task_data["task_status"] == "SUCCEED":
+                    return task_data.get("output_images", [])
+                elif task_data["task_status"] == "FAILED":
+                    raise Exception(f"图像编辑失败: {task_data.get('message', '未知错误')}")
                 
-                # 等待 5 秒后重试
                 await asyncio.sleep(5)
 
     async def call_ai_image_edit_siliconflow(self, image_path: Path, prompt: str) -> list:
