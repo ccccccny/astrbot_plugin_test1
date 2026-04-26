@@ -92,7 +92,8 @@ class MyPlugin(Star):
             yield event.plain_result(f"🎨 正在使用 AI 编辑图片，请稍候... (提示词: {prompt})")
             # 调用 AI 图像编辑 API
             try:
-                edited_images = await self.call_ai_image_edit_siliconflow(save_paths[0], prompt)
+                # edited_images = await self.call_ai_image_edit_siliconflow(save_paths[0], prompt)
+                edited_images = await self.call_ai_image_edit_modelscope(save_paths[0], prompt)
                 
                 # 6. 发送编辑后的图片
                 if edited_images:
@@ -123,6 +124,68 @@ class MyPlugin(Star):
                     # 流式写入，不占内存
                     async for chunk in resp.aiter_bytes(chunk_size=8192):
                         f.write(chunk)
+
+    async def call_ai_image_edit_modelscope(self, image_path: Path, prompt: str) -> list:
+        """
+        调用魔搭 (ModelScope) 的 Qwen-Image-Edit API
+        """
+        # 读取配置
+        api_key = self.config.get("modelscope_api_key")
+        model = self.config.get("edit_model", "Qwen/Qwen-Image-Edit-2509")
+        
+        if not api_key:
+            raise Exception("❌ 未配置 ModelScope API Key，请在插件配置中填写")
+        
+        # 读取图片并转为 Base64
+        with open(image_path, "rb") as f:
+            import base64
+            image_base64 = base64.b64encode(f.read()).decode()
+        
+        # 魔搭 API 地址
+        url = "https://api-inference.modelscope.cn/v1/images/generations"
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "X-ModelScope-Async-Mode": "true"  # 异步模式
+        }
+        
+        # 构建请求体（注意：魔搭使用 images 数组，不是 image）
+        data = {
+            "model": model,
+            "prompt": prompt,
+            "images": [f"data:image/jpeg;base64,{image_base64}"],  # 支持 1-3 张图
+            "negative_prompt": "",  # 可选，负向提示词
+            "steps": 40,
+            "guidance": 4.0,
+            "seed": None
+        }
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            # 1. 提交任务
+            response = await client.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            task_id = response.json()["task_id"]
+            
+            # 2. 轮询任务状态
+            while True:
+                status_url = f"https://api-inference.modelscope.cn/v1/tasks/{task_id}"
+                status_headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "X-ModelScope-Task-Type": "image_generation"
+                }
+                result = await client.get(status_url, headers=status_headers)
+                result.raise_for_status()
+                data = result.json()
+                
+                if data["task_status"] == "SUCCEED":
+                    # 返回生成的图片 URL
+                    return data.get("output_images", [])
+                elif data["task_status"] == "FAILED":
+                    raise Exception(f"图像编辑失败: {data.get('message', '未知错误')}")
+                
+                # 等待 5 秒后重试
+                await asyncio.sleep(5)
 
     async def call_ai_image_edit_siliconflow(self, image_path: Path, prompt: str) -> list:
         """
