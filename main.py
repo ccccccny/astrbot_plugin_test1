@@ -42,7 +42,7 @@ class MyPlugin(Star):
 
     # 注册指令的装饰器。指令名为 helloworld。注册成功后，发送 `/helloworld` 就会触发这个指令，并回复 `你好, {user_name}!`
     @filter.command("edit")
-    async def edit_img(self, event: AstrMessageEvent):
+    async def edit_img(self, event: AstrMessageEvent, prompt: str):
         """这是一个图像编辑指令""" # 这是 handler 的描述，将会被解析方便用户了解插件内容。建议填写。
 
         user_name = event.get_sender_name()
@@ -55,8 +55,6 @@ class MyPlugin(Star):
         image_urls = []
 
         # 提取用户输入的编辑提示词
-        prompt = event.message_str.strip()[1]
-        # logger.info(prompt)
         if not prompt:
             yield event.plain_result("❌ 请提供编辑描述！\n用法：引用图片并发送 /edit 将背景换成森林")
             return
