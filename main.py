@@ -5,6 +5,7 @@ from astrbot.api import logger
 from astrbot.api.message_components import *
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 from astrbot.core.utils.quoted_message_parser import *
+from astrbot.api import AstrBotConfig
 
 from pathlib import Path
 import httpx
@@ -12,12 +13,12 @@ import base64
 
 @register("edit", "img", "一个图像编辑插件", "0.0.1")
 class MyPlugin(Star):
-    def __init__(self, context: Context):
+    def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
+        self.config = config
 
     async def initialize(self):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
-        self.config = await self.context.load_plugin_config(self.name)
         hash_dict = {}  # 后续实现去重图片，通过path.rglob递归搜索文件
         plugin_data_path = Path(get_astrbot_data_path()) / "plugin_data" / self.name
         plugin_images_path = plugin_data_path / "images"
