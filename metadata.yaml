@@ -1,6 +1,9 @@
-name: helloworld # 插件唯一识别名，以 astrbot_plugin_ 前缀开头
-display_name: helloworld # 用于展示的名字，可以是方便人类阅读的名字（需要版本 >= v4.5.0，低版本不会报错，请放心填写）
-desc: AstrBot 插件示例。 # 插件简短描述
-version: v1.3.0 # 插件版本号。格式：v1.1.1 或者 v1.1
-author: Soulter # 作者
-repo: https://github.com/Soulter/helloworld # 插件的仓库地址
+name: astrbot_plugin_test1 # 插件唯一识别名，以 astrbot_plugin_ 前缀开头
+display_name: 图片编辑 # 用于展示的名字，可以是方便人类阅读的名字（需要版本 >= v4.5.0，低版本不会报错，请放心填写）
+desc: 配置图片编辑AI的api，按提示编辑指定图片。 # 插件简短描述
+version: v0.0.1 # 插件版本号。格式：v1.1.1 或者 v1.1
+author: ccnyy # 作者
+repo: https://github.com/ccccccny/astrbot_plugin_test1 # 插件的仓库地址
+#support_platforms:
+#  - qq_official
+astrbot_version: ">=v4.9.2"
