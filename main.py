@@ -8,6 +8,7 @@ from astrbot.core.utils.quoted_message_parser import *
 
 from pathlib import Path
 import httpx
+import base64
 
 @register("edit", "img", "一个图像编辑插件", "0.0.1")
 class MyPlugin(Star):
@@ -16,6 +17,7 @@ class MyPlugin(Star):
 
     async def initialize(self):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
+        self.config = await self.context.load_plugin_config(self.name)
         hash_dict = {}  # 后续实现去重图片，通过path.rglob递归搜索文件
         plugin_data_path = Path(get_astrbot_data_path()) / "plugin_data" / self.name
         plugin_images_path = plugin_data_path / "images"
@@ -50,6 +52,12 @@ class MyPlugin(Star):
 
         image_urls = []
 
+        # 提取用户输入的编辑提示词
+        prompt = event.message_str.strip()
+        if not prompt:
+            yield event.plain_result("❌ 请提供编辑描述！\n用法：引用图片并发送 /edit 将背景换成森林")
+            return
+
         for msg in message_chain:
             if msg.type == "Reply":
                 image_urls = await extract_quoted_message_images(event, msg)  # 提取图片下载地址
@@ -72,14 +80,33 @@ class MyPlugin(Star):
 
             # 异步下载每张图片
             logger.info(f"[img编辑插件] 开始下载 {len(image_urls)} 张图片...")
-            save_path = []
+            save_paths = []
             for idx, url in enumerate(image_urls):
                 files = [f for f in download_path.glob('*') if f.is_file() and not f.name.startswith('.')]
                 len_files = len(files)
                 await self.download_image_async(url, download_path / f"{str(len_files+1)}.jpg")
-                save_path.append(download_path / f"{str(len_files+1)}.jpg")
+                save_paths.append(download_path / f"{str(len_files+1)}.jpg")
 
-            yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!已成功下载{len(image_urls)}张图片到 {download_path}") # 发送一条纯文本消息
+            # 发送"处理中"提示
+            yield event.plain_result(f"🎨 正在使用 AI 编辑图片，请稍候... (提示词: {prompt})")
+            # 调用 AI 图像编辑 API
+            try:
+                edited_images = await self.call_ai_image_edit_siliconflow(save_paths[0], prompt)
+                
+                # 6. 发送编辑后的图片
+                if edited_images:
+                    message_chain = []  # 创建富媒体消息
+                    for img_url in edited_images:
+                        message_chain.append(Image.fromURL(img_url))  # # 从 URL 发送图片
+                    message_chain.append(At(qq=event.get_sender_id()))
+                    message_chain.append(Plain(f"\n✅ 编辑完成！\n原始图片: {len(image_urls)} 张\n编辑指令: {prompt}"))
+                    yield event.chain_result(message_chain)
+                else:
+                    yield event.plain_result("❌ AI 图片编辑失败，请检查配置或重试")
+                    
+            except Exception as e:
+                logger.error(f"图片编辑失败: {e}")
+                yield event.plain_result(f"❌ 编辑失败: {str(e)}")
 
 
     async def download_image_async(self, url: str, save_path: str | Path):
@@ -95,6 +122,53 @@ class MyPlugin(Star):
                     # 流式写入，不占内存
                     async for chunk in resp.aiter_bytes(chunk_size=8192):
                         f.write(chunk)
+
+    async def call_ai_image_edit_siliconflow(self, image_path: Path, prompt: str) -> list:
+        """
+        调用硅基流动 (SiliconFlow) 的 Qwen-Image-Edit API
+        """
+        # 从配置中读取 API 信息
+        if not self.config:
+            self.config = await self.context.load_plugin_config(self.name)
+        
+        api_key = self.config.get("siliconflow_api_key")
+        model = self.config.get("edit_model", "Qwen/Qwen-Image-Edit-2509")
+        
+        if not api_key:
+            raise Exception("❌ 未配置 SiliconFlow API Key，请在插件配置中填写")
+        
+        # 读取图片并转为 Base64
+        with open(image_path, "rb") as f:
+            image_base64 = base64.b64encode(f.read()).decode()
+        
+        # 硅基流动 API 地址（与 OpenAI 兼容）
+        url = "https://api.siliconflow.cn/v1/images/generations"
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # 构建请求体
+        data = {
+            "model": model,
+            "prompt": prompt,
+            "image": f"data:image/jpeg;base64,{image_base64}",  # Qwen-Image-Edit 需要这个字段
+            "image_size": "1328x1328",   # Qwen-Image 推荐尺寸
+            "cfg_scale": 4.0,            # CFG 值，配合 50 步使用
+            "num_inference_steps": 50,   # 推理步数，50 步效果最佳
+            "seed": None                  # 可选，固定种子可复现结果
+        }
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:  # 图像编辑时间较长
+            response = await client.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            result = response.json()
+            
+            # 提取生成的图片 URL
+            image_urls = [item["url"] for item in result.get("images", [])]
+            return image_urls
+
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""

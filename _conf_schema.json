@@ -1,29 +1,19 @@
 {
-  "token": {
-    "description": "Bot Token",
-    "type": "string"
+  "siliconflow_api_key": {
+    "description": "SiliconFlow API Key",
+    "type": "string",
+    "hint": "从 https://siliconflow.cn 获取"
   },
-  "sub_config": {
-    "description": "测试嵌套配置",
-    "type": "object",
-    "hint": "xxxx",
-    "items": {
-      "name": {
-        "description": "testsub",
-        "type": "string",
-        "hint": "xxxx"
-      },
-      "id": {
-        "description": "testsub",
-        "type": "int",
-        "hint": "xxxx"
-      },
-      "time": {
-        "description": "testsub",
-        "type": "int",
-        "hint": "xxxx",
-        "default": 123
-      }
-    }
+  "edit_model": {
+    "description": "图像编辑模型",
+    "type": "string",
+    "hint": "推荐 Qwen/Qwen-Image-Edit-2509",
+    "default": "Qwen/Qwen-Image-Edit-2509"
+  },
+  "image_size": {
+    "description": "输出图片尺寸",
+    "type": "string",
+    "hint": "Qwen-Image 可选: 1328x1328, 1664x928, 928x1664, 1472x1140, 1140x1472",
+    "default": "1328x1328"
   }
 }
