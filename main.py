@@ -131,7 +131,7 @@ class MyPlugin(Star):
         调用魔搭 (ModelScope) 的 Qwen-Image-Edit API
         """
         # 读取配置
-        api_key = self.config.get("modelscope_api_key")
+        api_key = self.config.get("api_key")
         model = self.config.get("edit_model", "Qwen/Qwen-Image-Edit-2509")
         
         if not api_key:
@@ -193,7 +193,7 @@ class MyPlugin(Star):
         调用硅基流动 (SiliconFlow) 的 Qwen-Image-Edit API
         """
         
-        api_key = self.config.get("siliconflow_api_key")
+        api_key = self.config.get("api_key")
         model = self.config.get("edit_model", "Qwen/Qwen-Image-Edit-2509")
         
         if not api_key:

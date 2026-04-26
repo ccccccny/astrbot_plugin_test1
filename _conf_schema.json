@@ -1,5 +1,5 @@
 {
-  "siliconflow_api_key": {
+  "api_key": {
     "description": "SiliconFlow API Key",
     "type": "string",
     "hint": "从 https://siliconflow.cn 获取"
