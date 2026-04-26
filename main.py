@@ -48,6 +48,8 @@ class MyPlugin(Star):
 
         logger.info(message_chain)
 
+        image_urls = []
+
         for msg in message_chain:
             if msg.type == "Reply":
                 image_urls = await extract_quoted_message_images(event, msg)  # 提取图片下载地址
