@@ -2,7 +2,7 @@ from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
 
-from astrbot.api.message_components import *
+import astrbot.api.message_components as Comp
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 from astrbot.core.utils.quoted_message_parser import *
 from astrbot.api import AstrBotConfig
@@ -119,9 +119,9 @@ class MyPlugin(Star):
                 if edited_images:
                     message_chain = []  # 创建富媒体消息
                     for img_url in edited_images:
-                        message_chain.append(Image.fromURL(img_url))  # # 从 URL 发送图片
-                    message_chain.append(At(qq=event.get_sender_id()))
-                    message_chain.append(Plain(f"\n✅ 编辑完成！\n原始图片: {len(image_urls)} 张\n编辑指令: {prompt}"))
+                        message_chain.append(Comp.Image.fromURL(img_url))  # # 从 URL 发送图片
+                    message_chain.append(Comp.At(qq=event.get_sender_id()))
+                    message_chain.append(Comp.Plain(f"\n✅ 编辑完成！\n原始图片: {len(image_urls)} 张\n编辑指令: {prompt}"))
                     yield event.chain_result(message_chain)
                 else:
                     yield event.plain_result("❌ AI 图片编辑失败，请检查配置或重试")
@@ -246,7 +246,7 @@ class MyPlugin(Star):
             "image_url": image_data  # 这里需要传入图片的编码数据
         }
         
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=200.0) as client:
             logger.info(f"发送请求到: {url}")
             # 1. 提交任务
             response = await client.post(url, headers=headers, json=data)
