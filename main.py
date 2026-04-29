@@ -90,20 +90,20 @@ class MyPlugin(Star):
             save_paths = []
             data = []
             for idx, url in enumerate(image_urls):
-                logger.info(f"正在处理第{idx}/{len(image_urls)}张图片")
+                logger.info(f"正在处理第{idx+1}/{len(image_urls)}张图片")
                 files = [f for f in download_path.glob('*') if f.is_file() and not f.name.startswith('.')]
                 len_files = len(files)
                 img_path = download_path / f"{len_files+1}.jpg"
                 await self.download_image_async(url, img_path)
-                logger.info(f"第{idx}/{len(image_urls)}张图片下载完成")
+                logger.info(f"第{idx+1}/{len(image_urls)}张图片下载完成")
                 save_paths.append(img_path)
                 resized_data = await self.resize_img(img_path)
-                logger.info(f"第{idx}/{len(image_urls)}张图片尺寸处理完成")
+                logger.info(f"第{idx+1}/{len(image_urls)}张图片尺寸处理完成")
                 async with aiofiles.open(img_path, 'wb') as f:
                     await f.write(resized_data)
-                logger.info(f"第{idx}/{len(image_urls)}张图片已保存")
+                logger.info(f"第{idx+1}/{len(image_urls)}张图片已保存")
                 img_data = await self.image_to_data_url(img_path)
-                logger.info(f"第{idx}/{len(image_urls)}张图片已编码数据")
+                logger.info(f"第{idx+1}/{len(image_urls)}张图片已编码数据")
                 data.append(img_data)
 
 
@@ -112,6 +112,7 @@ class MyPlugin(Star):
             # 调用 AI 图像编辑 API
             try:
                 logger.info(f"开始调用modelscope API")
+                logger.info(f"传入的 image_data 长度: {len(image_data)}")
                 edited_images = await self.call_ai_image_edit_modelscope(data, prompt)
                 
                 # 6. 发送编辑后的图片
@@ -245,8 +246,12 @@ class MyPlugin(Star):
         }
         
         async with httpx.AsyncClient(timeout=120.0) as client:
+            logger.info(f"发送请求到: {url}")
+            logger.info(f"请求数据: {data}")
             # 1. 提交任务
             response = await client.post(url, headers=headers, json=data)
+            logger.info(f"API 状态码: {response.status_code}")
+            logger.info(f"API 原始响应: {response.text}")
             response.raise_for_status()
             task_id = response.json()["task_id"]
             
