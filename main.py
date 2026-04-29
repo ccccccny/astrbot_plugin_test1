@@ -112,7 +112,7 @@ class MyPlugin(Star):
             # 调用 AI 图像编辑 API
             try:
                 logger.info(f"开始调用modelscope API")
-                logger.info(f"传入的 image_data 长度: {len(image_data)}")
+                logger.info(f"传入的 image_data 长度: {len(data)}")
                 edited_images = await self.call_ai_image_edit_modelscope(data, prompt)
                 
                 # 6. 发送编辑后的图片
