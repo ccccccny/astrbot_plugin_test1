@@ -236,6 +236,7 @@ class MyPlugin(Star):
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            "X-ModelScope-Async-Mode": "true",
         }
         
         # 使用官方示例的格式
