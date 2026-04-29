@@ -247,7 +247,6 @@ class MyPlugin(Star):
         
         async with httpx.AsyncClient(timeout=120.0) as client:
             logger.info(f"发送请求到: {url}")
-            logger.info(f"请求数据: {data}")
             # 1. 提交任务
             response = await client.post(url, headers=headers, json=data)
             logger.info(f"API 状态码: {response.status_code}")
